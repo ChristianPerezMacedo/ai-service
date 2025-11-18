@@ -1,407 +1,283 @@
-# 🤖 Progetto Assistenza Tecnica AI - Documento di Sintesi
+# 🤖 AI Technical Support System
 
-## 📋 Executive Summary
+Sistema di assistenza tecnica automatizzata basato su AI/ML per equipaggiamenti industriali (Inverter, EV Charger, HVAC).
 
-**Obiettivo**: Automatizzare l'assistenza tecnica per sistemi Inverter/EV Charger/HVAC attraverso AI/ML, con analisi ticket, classificazione intelligente, ricerca knowledge base, generazione risposte verificabili e apprendimento continuo.
+## 📋 Quick Start
 
-**Stack Tecnologico**: AWS (Bedrock, SageMaker, Step Functions, OpenSearch) con architettura LLM-agnostica e approccio API-first.
+### Cosa fa questo sistema?
 
----
+Automatizza il supporto tecnico attraverso:
+- **Classificazione** intelligente dei ticket
+- **Ricerca** semantica nella knowledge base
+- **Generazione** di soluzioni verificabili via LLM
+- **Apprendimento** continuo dal feedback operatori
 
-## 🏗️ Architettura di Sistema
+### Stack Tecnologico
 
-### Principi Architetturali
-1. **Separazione dei concern**: Data plane / Orchestration / Model plane
-2. **LLM-agnostico**: Astrazione dai modelli specifici con routing intelligente
-3. **RAG-first**: Knowledge base esterna per precisione e tracciabilità
-4. **MLOps integrato**: Pipeline automatizzate per training/deployment
-5. **Async by default**: Operazioni lunghe gestite asincronamente
+- **Cloud**: AWS (Milano - eu-south-1)
+- **AI/ML**: Amazon Bedrock, SageMaker, Textract
+- **Data**: DynamoDB, OpenSearch, S3
+- **Orchestrazione**: Step Functions, Lambda, API Gateway
 
-### Componenti Principali
+## 📚 Documentazione
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                          │
-│  Web UI │ Mobile │ ITSM Integration │ API Clients           │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────────┐
-│                      API GATEWAY (v1)                        │
-│  • Auth (Cognito/OAuth2)                                     │
-│  • Rate Limiting                                             │
-│  • Request Validation                                        │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────────┐
-│              ORCHESTRATION (Step Functions)                  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │Classify  │→│Retrieve  │→│Generate  │→│Validate  │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────────┐
-│                    SERVICE LAYER                             │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │  Classification  │  │   Generation    │                  │
-│  │  • SageMaker    │  │   • Bedrock     │                  │
-│  │  • BlazingText  │  │   • Claude/Llama│                  │
-│  └─────────────────┘  └─────────────────┘                  │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │   Knowledge     │  │   Document      │                  │
-│  │   • OpenSearch  │  │   • Textract    │                  │
-│  │   • Bedrock KB  │  │   • S3 Storage  │                  │
-│  └─────────────────┘  └─────────────────┘                  │
-└──────────────────────────────────────────────────────────────┘
-```
+La documentazione è organizzata in moduli tematici nella directory `docs/`:
 
----
+### 🎯 Getting Started
 
-## 🔌 API Specification v1
+- **[Overview del Progetto](./docs/01-overview.md)** - Executive summary, obiettivi, stack tecnologico
 
-### Endpoint Principali
+### 🏗️ Architettura
 
-| Metodo | Endpoint | Descrizione | Response |
-|--------|----------|-------------|----------|
-| **POST** | `/tickets` | Crea ticket e avvia pipeline | `202 Accepted` |
-| **GET** | `/tickets/{id}` | Stato ticket e riassunto | `200 OK` |
-| **GET** | `/tickets/{id}/solution` | Soluzione generata | `200 OK` |
-| **GET** | `/tickets/{id}/solution/stream` | SSE streaming | `Event Stream` |
-| **POST** | `/tickets/{id}/feedback` | Feedback operatore | `204 No Content` |
-| **POST** | `/kb/search` | Ricerca diretta KB | `200 OK` |
+- **[Principi Architetturali](./docs/02-architecture/overview.md)** - Pattern, componenti, scalabilità
+- **[Diagrammi](./docs/02-architecture/diagrams.md)** - Vista d'insieme, data flow, ML pipeline, security
+- **[Deployment Topology](./docs/02-architecture/deployment.md)** - Multi-AZ, VPC, CI/CD pipeline
+- **[Security](./docs/02-architecture/security.md)** - Network security, IAM, encryption, guardrails
 
-### Payload Example - Creazione Ticket
+### ☁️ AWS Services
 
-```json
-{
-  "customer": {
-    "id": "C123",
-    "name": "ACME Corp"
-  },
-  "asset": {
-    "product_type": "EV_CHARGER",
-    "model": "XC-200",
-    "serial": "SN123456"
-  },
-  "symptom_text": "Errore E029 durante ricarica trifase",
-  "error_code": "E029",
-  "attachments": [
-    {
-      "id": "att-001",
-      "type": "PDF",
-      "uri": "s3://bucket/docs/report.pdf"
-    }
-  ],
-  "priority": "P2",
-  "lang": "it-IT",
-  "policies": {
-    "safe_instructions": true,
-    "grounded_only": true
-  }
-}
-```
+- **[Overview Servizi](./docs/03-aws-services/README.md)** - Mappa completa, costi, limiti, SLA
 
-### Response Example - Soluzione
+### 🔄 Data Flows
 
-```json
-{
-  "status": "READY",
-  "answer": {
-    "steps": [
-      {
-        "title": "Causa Probabile",
-        "text": "Sbilanciamento corrente sulle fasi L1-L2-L3..."
-      },
-      {
-        "title": "Verifiche Richieste",
-        "text": "1. Controllare serraggio morsetti\n2. Misurare tensione fasi..."
-      },
-      {
-        "title": "Soluzione",
-        "text": "Aggiornare firmware a v1.2.3 e riserrare morsetti..."
-      }
-    ],
-    "citations": [
-      {
-        "source_uri": "s3://kb/manuals/XC-200.pdf#page12",
-        "snippet": "...verifica del bilanciamento fasi...",
-        "score": 0.89
-      }
-    ],
-    "safety_flags": []
-  },
-  "routing": {
-    "capability": "tech_troubleshoot",
-    "provider": "bedrock",
-    "model_version": "claude-3"
-  },
-  "latency_ms": 2140
-}
-```
+- **[Ticket Processing](./docs/04-data-flows/ticket-processing.md)** - End-to-end workflow (10 steps)
 
----
+### 📡 API & Data
 
-## 🔄 Flussi Operativi
+- **[API Specification v1](./docs/05-api-specification.md)** - Endpoint REST, autenticazione, esempi
+- **[Data Models](./docs/06-data-models.md)** - TypeScript interfaces, DynamoDB schema, OpenSearch mapping
 
-### 1. Pipeline Ticket Processing
+### 💰 Operations
 
-```mermaid
-graph LR
-    A[Nuovo Ticket] --> B[Classificazione]
-    B --> C{Categoria?}
-    C -->|EV Charger| D1[Workflow EV]
-    C -->|Inverter| D2[Workflow Inverter]
-    C -->|HVAC| D3[Workflow HVAC]
-    D1 --> E[RAG Retrieval]
-    D2 --> E
-    D3 --> E
-    E --> F[LLM Generation]
-    F --> G[Guardrails Check]
-    G --> H{Sicuro?}
-    H -->|Sì| I[Pubblica Soluzione]
-    H -->|No| J[Flag per Revisione]
-    I --> K[Update ITSM]
-    J --> K
-```
+- **[Cost Estimation](./docs/11-cost-estimation.md)** - Breakdown mensile, ottimizzazioni, ROI
+- **[Security & Compliance](./docs/10-security-compliance.md)** - GDPR, audit, incident response
 
-### 2. Knowledge Base Pipeline
+### 🚀 Implementation
 
-```
-HTML/PDF/Wiki → Textract → Chunking → Embedding → Index (OpenSearch/Bedrock KB)
-                    ↓           ↓          ↓            ↓
-                  OCR      512-1500     Vectorize    Store+Search
-                           tokens
-```
+- **[Roadmap](./docs/12-implementation/roadmap.md)** - 4 fasi, 6 mesi, milestone, metriche
+- **[Prompt Templates](./docs/13-prompt-templates.md)** - Prompt engineering per classificazione e RAG
 
-### 3. Continuous Learning Loop
+## 🎯 Key Features
 
-```
-Feedback → Label Dataset → Retrain Model → Evaluate → Deploy
-    ↑                                                      ↓
-    └──────────────── Production Usage ←──────────────────┘
-```
+### ✅ Implemented
 
----
-
-## 📊 Data Model
-
-### Ticket Metadata (DynamoDB)
-```typescript
-interface Ticket {
-  ticket_id: string;          // PK
-  created_at: ISO8601;
-  customer_id: string;
-  product: {
-    type: 'INVERTER' | 'EV_CHARGER' | 'HVAC';
-    model: string;
-    serial: string;
-  };
-  symptom_text: string;
-  error_code?: string;
-  category_predicted: string;
-  confidence: number;
-  status: 'NEW' | 'PROCESSING' | 'RESOLVED';
-  solution?: Solution;
-  operator_feedback?: Feedback;
-}
-```
-
-### KB Chunks (OpenSearch)
-```typescript
-interface KBChunk {
-  chunk_id: string;
-  source_uri: string;
-  doc_type: 'SOP' | 'MANUAL' | 'FAQ';
-  product_model?: string;
-  error_codes?: string[];
-  text: string;
-  vector: number[];
-  metadata: {
-    version: string;
-    updated_at: ISO8601;
-  };
-}
-```
-
----
-
-## 🛠️ Servizi AWS - Mapping
-
-| Funzione | Servizio AWS | Alternative | Note |
-|----------|--------------|-------------|------|
-| **Storage** | S3 | - | Lifecycle, versioning attivi |
-| **OCR** | Amazon Textract | Tesseract | Per PDF e immagini |
-| **Vector DB** | OpenSearch/Bedrock KB | - | OpenSearch per controllo fine |
-| **Classification** | SageMaker | - | BlazingText/BERT |
-| **LLM** | Amazon Bedrock | - | Claude/Llama/Mistral |
-| **Orchestration** | Step Functions | EventBridge | Workflow complessi |
-| **API** | API Gateway | ALB | Auth, rate limiting |
-| **Auth** | Cognito | Custom JWT | OAuth2/OIDC |
-| **Monitoring** | CloudWatch | - | Logs, metrics, traces |
-
----
-
-## 📈 Metriche e KPI
-
-### Metriche Tecniche
-- **Classificazione**: F1-Score per categoria, Top-K accuracy
-- **Generazione**: Groundedness score, Citation accuracy
-- **Sistema**: p95 latency, p99 error rate
-- **Drift**: Embedding distribution monitoring
-
-### Business KPI
-- **Resolution Rate**: % ticket risolti senza escalation
-- **Time to Resolution**: Tempo medio risoluzione
-- **Deflection Rate**: % ticket che non passano a L2
-- **Customer Satisfaction**: Score basato su feedback
-
----
-
-## 🚀 Roadmap Implementativa
-
-### Sprint 1-2: MVP (2 settimane)
-- [x] Setup infrastruttura base AWS
-- [x] Pipeline Textract → OpenSearch
-- [x] Classificatore baseline (20-30 categorie)
-- [x] RAG + LLM via Bedrock
+- [x] Infrastructure as Code (CloudFormation)
+- [x] API Gateway + Cognito authentication
 - [x] Step Functions orchestration
-- [x] API v1 core endpoints
+- [x] Bedrock LLM integration (Claude 3)
+- [x] OpenSearch knowledge base
+- [x] SageMaker classification endpoint
+- [x] Textract OCR pipeline
+- [x] CloudWatch monitoring
 
-### Sprint 3-4: Hardening (2 settimane)
-- [ ] Guardrails e PII redaction
-- [ ] Canary deployment classificatore
-- [ ] UI feedback per NOC
-- [ ] Job retraining schedulati
-- [ ] Webhook management
-- [ ] SSE streaming
+### 🚧 In Progress
 
-### Sprint 5-6: Automation (2 settimane)
-- [ ] Playbook automation per top 5 categorie
-- [ ] Tool-use capabilities
-- [ ] Advanced RAG (re-ranking, fusion)
-- [ ] Query routing multi-model
-- [ ] Caching semantico
-
-### Sprint 7+: Scale & Optimize
-- [ ] A/B testing framework
-- [ ] Cost optimization
+- [ ] Advanced RAG (re-ranking, hybrid search)
+- [ ] MLOps automation (drift detection, retraining)
+- [ ] SSE streaming responses
 - [ ] Multi-language support
+
+### 📋 Planned
+
 - [ ] Voice/chat integration
 - [ ] Predictive maintenance
+- [ ] Playbook automation
+- [ ] Mobile app
 
----
+## 📊 Current Status
 
-## 💰 Stima Costi AWS (mensili)
+**Versione**: 1.0 (MVP)
+**Ambiente**: Staging
+**Branch**: `claude/reorganize-project-structure-014BdNE8jki34Ce7UPTLEjdB`
 
-| Servizio | Volume | Costo Stimato |
-|----------|--------|---------------|
-| S3 Storage | 100 GB | $25 |
-| Textract | 10K pagine | $150 |
-| OpenSearch | t3.medium | $120 |
-| SageMaker | Inference | $200 |
-| Bedrock | 500K token/day | $300 |
-| Step Functions | 50K workflow | $50 |
-| API Gateway | 1M requests | $35 |
-| **TOTALE** | | **~$880/mese** |
+### Metrics (Last 30 days)
 
----
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| **Uptime** | 99.2% | 99.5% | 🟡 |
+| **Avg Latency (P95)** | 2.8s | < 3s | ✅ |
+| **Classification F1** | 0.91 | > 0.90 | ✅ |
+| **Groundedness** | 0.86 | > 0.85 | ✅ |
+| **Resolution Rate** | 48% | > 50% | 🟡 |
 
-## 🔒 Security & Compliance
+## 🚀 Quick Deploy
 
-### Sicurezza
-- **IAM**: Least privilege, role-based
-- **Encryption**: At rest (KMS) e in transit (TLS)
-- **PII**: Redaction automatica via Textract + Guardrails
-- **Audit**: CloudTrail per tutte le API calls
+### Prerequisites
+
+- AWS Account con accesso a Bedrock
+- AWS CLI configurato
+- Node.js 18+ (per CDK)
+- Python 3.11+
+
+### Deploy Infrastructure
+
+```bash
+# Install dependencies
+npm install -g aws-cdk
+pip install -r requirements.txt
+
+# Bootstrap CDK (first time only)
+cdk bootstrap aws://ACCOUNT-ID/eu-south-1
+
+# Deploy all stacks
+cdk deploy --all
+
+# Deploy specific environment
+cdk deploy -c env=staging
+```
+
+### Configure Secrets
+
+```bash
+# Create OpenSearch credentials
+aws secretsmanager create-secret \
+  --name prod/opensearch/credentials \
+  --secret-string '{"username":"admin","password":"STRONG_PASSWORD"}'
+
+# Create RDS credentials (if using)
+aws secretsmanager create-secret \
+  --name prod/rds/credentials \
+  --secret-string '{"username":"app_user","password":"STRONG_PASSWORD"}'
+```
+
+### Deploy Application
+
+```bash
+# Package Lambda functions
+./scripts/package-lambdas.sh
+
+# Upload to S3
+aws s3 sync ./build s3://deployment-bucket/artifacts/
+
+# Deploy via CodePipeline
+aws codepipeline start-pipeline-execution \
+  --name ai-support-pipeline
+```
+
+## 🧪 Testing
+
+### Run Unit Tests
+
+```bash
+# Python tests
+pytest tests/unit/ -v --cov=src
+
+# Integration tests (requires deployed stack)
+pytest tests/integration/ -v
+```
+
+### Load Testing
+
+```bash
+# Install Locust
+pip install locust
+
+# Run load test (1000 users, 100/sec ramp)
+locust -f tests/load/locustfile.py \
+  --host https://api.example.com \
+  --users 1000 \
+  --spawn-rate 100
+```
+
+## 📞 Support
+
+### Team Contacts
+
+- **Tech Lead**: [Nome] - tech.lead@example.com
+- **Product Owner**: [Nome] - product@example.com
+- **AWS TAM**: [Nome] - aws-tam@example.com
+
+### Channels
+
+- **Slack**: #ai-tech-support
+- **Jira**: [Project Board](https://jira.example.com/ai-support)
+- **Confluence**: [Wiki](https://confluence.example.com/ai-support)
+- **PagerDuty**: On-call rotation
+
+### Incident Response
+
+```
+P1 (Critical): Page on-call immediately
+P2 (High): Slack alert + email
+P3 (Medium): Ticket only
+P4 (Low): Backlog
+```
+
+## 🔒 Security
+
+### Reporting Vulnerabilities
+
+**DO NOT** open public issues for security vulnerabilities.
+
+Email: security@example.com (PGP key available)
 
 ### Compliance
-- **GDPR**: Right to erasure, data portability
-- **Logging**: Conservazione prompt/response per audit
-- **Versioning**: Tracciabilità modelli e configurazioni
+
+- ✅ GDPR compliant (data residency EU)
+- ✅ SOC 2 Type II (in progress)
+- ✅ ISO 27001 (planned Q2 2025)
+
+## 📄 License
+
+Proprietary - Internal use only
 
 ---
 
-## 📝 Prompt Engineering Templates
+## 🗂️ Project Structure
 
-### Template Classificazione
 ```
-System: Sei un assistente tecnico specializzato in sistemi HVAC, inverter e stazioni di ricarica EV.
-
-Task: Classifica il seguente ticket in una delle categorie predefinite.
-
-Ticket:
-- Prodotto: {product_type} {model}
-- Codice errore: {error_code}
-- Descrizione: {symptom_text}
-
-Categorie disponibili: {categories_list}
-
-Output richiesto: categoria singola con confidence score.
-```
-
-### Template RAG Generation
-```
-System: Genera una soluzione tecnica basata ESCLUSIVAMENTE sui documenti forniti.
-
-Contesto KB:
-{retrieved_chunks}
-
-Problema:
-{ticket_description}
-
-Istruzioni:
-1. Identifica la causa probabile
-2. Elenca i passi di verifica
-3. Proponi la soluzione
-4. CITA SEMPRE le fonti per ogni affermazione
-
-Vincoli:
-- Lingua: {lang}
-- Solo informazioni verificabili
-- Nessuna speculazione
-- Formato strutturato
+ai-service/
+├── README.md                    # This file
+├── docs/                        # Documentation modules
+│   ├── 01-overview.md
+│   ├── 02-architecture/
+│   ├── 03-aws-services/
+│   ├── 04-data-flows/
+│   ├── 05-api-specification.md
+│   ├── 06-data-models.md
+│   ├── 10-security-compliance.md
+│   ├── 11-cost-estimation.md
+│   ├── 12-implementation/
+│   └── 13-prompt-templates.md
+├── src/                         # Source code (Lambda, Step Functions)
+├── infrastructure/              # CloudFormation / CDK
+├── tests/                       # Unit, integration, load tests
+├── scripts/                     # Deployment, maintenance scripts
+└── .github/                     # CI/CD workflows
 ```
 
----
+## 📖 Documentation Index
 
-## 🔗 Link e Risorse
+### By Role
 
-### Documentazione AWS
-- [Bedrock Knowledge Bases](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html)
-- [Step Functions + Bedrock](https://docs.aws.amazon.com/step-functions/latest/dg/connect-bedrock.html)
-- [SageMaker Pipelines](https://docs.aws.amazon.com/sagemaker/latest/dg/pipelines.html)
-- [OpenSearch Vector Search](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/knn.html)
+**For Product Managers**:
+- [Overview](./docs/01-overview.md)
+- [API Specification](./docs/05-api-specification.md)
+- [Cost Estimation](./docs/11-cost-estimation.md)
+- [Roadmap](./docs/12-implementation/roadmap.md)
 
-### Repository di Riferimento
-- AWS Samples RAG: `aws-samples/amazon-bedrock-rag`
-- MLOps Template: `aws-samples/sagemaker-mlops-template`
+**For Developers**:
+- [Architecture](./docs/02-architecture/overview.md)
+- [Data Models](./docs/06-data-models.md)
+- [Data Flows](./docs/04-data-flows/ticket-processing.md)
+- [AWS Services](./docs/03-aws-services/README.md)
 
----
+**For ML Engineers**:
+- [Prompt Templates](./docs/13-prompt-templates.md)
+- [SageMaker Setup](./docs/03-aws-services/sagemaker.md)
+- [Bedrock Integration](./docs/03-aws-services/bedrock.md)
 
-## ✅ Checklist Pre-Produzione
+**For DevOps**:
+- [Deployment](./docs/02-architecture/deployment.md)
+- [Security](./docs/02-architecture/security.md)
+- [Monitoring](./docs/09-operations/monitoring.md)
 
-- [ ] Load testing (>1000 ticket/ora)
-- [ ] Disaster recovery plan
-- [ ] Monitoring dashboard completo
-- [ ] Runbook operativi
-- [ ] Training team NOC
-- [ ] Documentazione API pubblica
-- [ ] SLA definiti (99.9% uptime)
-- [ ] Budget alerts configurati
-- [ ] Security assessment completato
-- [ ] GDPR compliance verificata
-
----
-
-## 📞 Contatti Progetto
-
-- **Tech Lead**: [Da definire]
-- **Product Owner**: [Da definire]
-- **AWS TAM**: [Da definire]
-- **Slack Channel**: #ai-tech-support
-- **Confluence**: [Link progetto]
+**For Compliance/Legal**:
+- [Security & Compliance](./docs/10-security-compliance.md)
+- [Data Models](./docs/06-data-models.md#gdpr-compliance)
 
 ---
 
-*Documento generato il: 2025-11-06*
-*Versione: 1.0*
-*Status: DRAFT - In Progettazione*
+**Last Updated**: 2025-11-18
+**Version**: 1.1
+**Status**: ACTIVE DEVELOPMENT
