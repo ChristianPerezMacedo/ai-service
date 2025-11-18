@@ -19,40 +19,41 @@ Ogni guida segue questo formato:
 ## Guide Disponibili
 
 ### Infrastructure & Orchestration
-- [ ] `step-functions-orchestration.md` - Orchestrazione workflow con Step Functions
-- [ ] `eventbridge-patterns.md` - Event-driven architecture patterns
+- ✅ `step-functions-orchestration.md` - Orchestrazione workflow con Step Functions
+- ✅ `eventbridge-patterns.md` - Event-driven architecture patterns
 
 ### AI/ML
-- [ ] `rag-implementation.md` - Retrieval-Augmented Generation deep dive
-- [ ] `vector-search-opensearch.md` - Vector search con OpenSearch k-NN
-- [ ] `bedrock-integration-patterns.md` - Bedrock LLM integration patterns
-- [ ] `sagemaker-mlops.md` - SageMaker MLOps pipeline
+- ✅ `rag-implementation.md` - Retrieval-Augmented Generation deep dive
+- ✅ `vector-search-opensearch.md` - Vector search con OpenSearch k-NN
+- ✅ `bedrock-integration-patterns.md` - Bedrock LLM integration patterns
+- ✅ `sagemaker-mlops.md` - SageMaker MLOps pipeline
 
 ### Data & APIs
-- [ ] `dynamodb-data-modeling.md` - Advanced DynamoDB patterns
-- [ ] `api-gateway-lambda-patterns.md` - Serverless API patterns
+- ✅ `dynamodb-data-modeling.md` - Advanced DynamoDB patterns
+- ✅ `api-gateway-lambda-patterns.md` - Serverless API patterns
 
 ### Operations
-- [ ] `observability-guide.md` - CloudWatch, X-Ray, monitoring
-- [ ] `cost-optimization.md` - AWS cost optimization strategies
-- [ ] `disaster-recovery-ha.md` - DR and high availability
-- [ ] `cicd-pipeline.md` - CI/CD best practices
+- ✅ `observability-guide.md` - CloudWatch, X-Ray, monitoring
+- ✅ `cost-optimization.md` - AWS cost optimization strategies
+- ✅ `disaster-recovery-ha.md` - DR and high availability
+- ✅ `cicd-pipeline.md` - CI/CD best practices
 
 ### Security
-- [ ] `security-deep-dive.md` - IAM, encryption, secrets management
+- ✅ `security-deep-dive.md` - IAM, encryption, secrets management
 
 ### Testing
-- [ ] `testing-strategies.md` - Unit, integration, load testing
+- ✅ `testing-strategies.md` - Unit, integration, load testing
 
-## Come Contribuire
+## Come Usare Queste Guide
 
-1. Vedi i task disponibili in `/LEARNING_TASKS.md`
-2. Scegli un task o viene assegnato
-3. Segui il template specificato nel task
-4. Crea il file nella directory corretta
-5. Assicurati che il codice sia funzionante
-6. Collega la guida ai file esistenti del progetto
-7. Richiedi review
+**Se sei qui per imparare**: Vai al documento [LEARNING_PATH.md](../../LEARNING_PATH.md) nella root del progetto. Troverai percorsi strutturati per ruolo e livello di esperienza.
+
+**Se sei qui per contribuire**:
+1. Proponi nuove guide o miglioramenti via PR
+2. Segui il template esistente delle guide
+3. Assicurati che il codice sia funzionante e testato
+4. Collega la guida ai file esistenti del progetto
+5. Richiedi review da Tech Lead
 
 ## Target Audience
 
